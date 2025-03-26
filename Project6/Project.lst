@@ -1,0 +1,941 @@
+Microsoft (R) Macro Assembler Version 14.42.34436.0	    03/12/25 02:26:20
+$Project Six     (Proj6_Strandga.asm			     Page 1 - 1
+
+
+				TITLE Project Six     (Proj6_Strandga.asm)
+
+				; Author: Gannon Strand
+				; Last Modified: 03/06/25
+				; OSU email address: strandga@oregonstate.edu
+				; Course number/section:   CS271 Section 400
+				; Project Number: 6                Due Date: 03/16/25
+				; Description: This program will read a file as entered by the user and reverse the order of temperatures stored within that file.
+				;			   It will then display those temps as integers before saying farwell.
+
+				INCLUDE Irvine32.inc
+			      C ; Include file for Irvine32.lib             (Irvine32.inc)
+			      C 
+			      C ;OPTION CASEMAP:NONE		; optional: make identifiers case-sensitive
+			      C 
+			      C INCLUDE SmallWin.inc		; MS-Windows prototypes, structures, and constants
+			      C .NOLIST
+			      C .LIST
+			      C 
+			      C INCLUDE VirtualKeys.inc
+			      C ; VirtualKeys.inc
+			      C .NOLIST
+			      C .LIST
+			      C 
+			      C 
+			      C .NOLIST
+			      C .LIST
+			      C 
+
+				; (insert macro definitions here)
+
+				; Macro to display header/prompt, get value from user(and stores it), ensures user input is not bigger then count, and provides a number of bytes read.
+				; preconditions: prompt, error, userval, count, and bytesread defined.
+				; postconditions: userval is less then or equal to 30 bytes or it will end the program.
+				; registers changed: None
+				; recieves: prompt, error, userval, count, bytesread
+				; returns: userval, bytesread
+				mGetString MACRO prompt:REQ, error:REQ, userval:REQ, count:REQ, bytesread:REQ
+					PUSH	EDX
+					PUSH	EAX
+					PUSH	ECX
+					PUSH	EBX
+
+				_start:
+					MOV		EBX, count
+					CALL	Crlf
+					mDisplayString prompt
+				; Pre conditions of ReadString ECX contains the buffer size, EDX is the address of the buffer
+					MOV		EDX, OFFSET userval
+					DEC		EBX
+					MOV		ECX, EBX
+					INC		EBX
+					CALL	ReadString
+				; Post conditions of ReadString EAX contains number of bytes read from terminal, EDX has address of user entered string
+					MOV		bytesread, EAX
+
+					SUB		EBX, 3
+					CMP		bytesread, EBX					; checks if user val is less then or equal to 30 characters
+					JG		_error
+					JMP		_end
+
+				_error:
+					mDisplayString error					; if string is over 30 characters displays an error
+					CALL	Crlf
+					Invoke ExitProcess,0					; exit to operating system
+
+				_end:
+					POP		EAX
+					POP		EBX
+					POP		ECX
+					POP		EDX
+				ENDM
+
+				; Macro to display a string.
+				; preconditions: string is deined.
+				; postconditions: None
+				; registers changed: None
+				; recieves: string
+				; returns: Printed String
+				mDisplayString MACRO string:REQ
+					PUSH	EDX
+
+					MOV		EDX, OFFSET string
+					CALL	WriteString
+
+					POP		EDX
+				ENDM
+
+				; Macro to display a character.
+				; preconditions: char is defined.
+				; postconditions: None
+				; registers changed: None
+				; recieves: char
+				; returns: Printed Character
+				mDisplayChar MACRO char:REQ
+					PUSH	EAX
+
+					MOV		AL, char
+					CALL	WriteChar
+
+					POP		EAX
+				ENDM
+
+				; (insert constant definitions here)
+
+ = 00000021				count			= 33					; Constant for max number of characters allowed (which is subtracted by 3 earlier.)
+ = 00000018				TEMPS_PER_DAY	= 24
+ = 0000002C				DELIMITER		= ','
+ = 00000078				BUFFERSIZE		= TEMPS_PER_DAY * 5		; Should have enough room for the buffer, leaves room for worst case all negative three digit numbers with deliminator.
+
+ 00000000			.data
+
+				; (insert variable definitions here)
+
+ 00000000 57 65 6C 63 6F		header		BYTE	"Welcome to Intern Fixinator by Gannon Strand", 0
+	   6D 65 20 74 6F
+	   20 49 6E 74 65
+	   72 6E 20 46 69
+	   78 69 6E 61 74
+	   6F 72 20 62 79
+	   20 47 61 6E 6E
+	   6F 6E 20 53 74
+	   72 61 6E 64 00
+ 0000002D 54 68 69 73 20		instruct	BYTE	"This program will open a file name you enter (under 31 characters) that is ASCII-formatted, and I will reverse that order and print out the corrected temps!", 0
+	   70 72 6F 67 72
+	   61 6D 20 77 69
+	   6C 6C 20 6F 70
+	   65 6E 20 61 20
+	   66 69 6C 65 20
+	   6E 61 6D 65 20
+	   79 6F 75 20 65
+	   6E 74 65 72 20
+	   28 75 6E 64 65
+	   72 20 33 31 20
+	   63 68 61 72 61
+	   63 74 65 72 73
+	   29 20 74 68 61
+	   74 20 69 73 20
+	   41 53 43 49 49
+	   2D 66 6F 72 6D
+	   61 74 74 65 64
+	   2C 20 61 6E 64
+	   20 49 20 77 69
+	   6C 6C 20 72 65
+	   76 65 72 73 65
+	   20 74 68 61 74
+	   20 6F 72 64 65
+	   72 20 61 6E 64
+	   20 70 72 69 6E
+	   74 20 6F 75 74
+	   20 74 68 65 20
+	   63 6F 72 72 65
+	   63 74 65 64 20
+	   74 65 6D 70 73
+	   21 00
+ 000000CA 50 6C 65 61 73		prompt		BYTE	"Please enter the name of the file: ", 0
+	   65 20 65 6E 74
+	   65 72 20 74 68
+	   65 20 6E 61 6D
+	   65 20 6F 66 20
+	   74 68 65 20 66
+	   69 6C 65 3A 20
+	   00
+ 000000EE 53 74 72 69 6E		error		BYTE	"String entered is too large!", 0
+	   67 20 65 6E 74
+	   65 72 65 64 20
+	   69 73 20 74 6F
+	   6F 20 6C 61 72
+	   67 65 21 00
+ 0000010B 46 69 6C 65 20		error2		BYTE	"File not found", 0
+	   6E 6F 74 20 66
+	   6F 75 6E 64 00
+ 0000011A 54 68 61 6E 6B		farwell		BYTE	"Thanks for using Intern Fixinator! Bye! :)", 0
+	   73 20 66 6F 72
+	   20 75 73 69 6E
+	   67 20 49 6E 74
+	   65 72 6E 20 46
+	   69 78 69 6E 61
+	   74 6F 72 21 20
+	   42 79 65 21 20
+	   3A 29 00
+ 00000145  00000078 [			filebuffer	BYTE	BUFFERSIZE DUP(?)
+	    00
+	   ]
+ 000001BD  00000021 [			userval		BYTE	count DUP(0)		; stores file name that the user enters.
+	    00
+	   ]
+ 000001DE 00000000			bytesread	DWORD	?					; stores number of bytes read in userval.
+ 000001E2  00000018 [			tempArray	SDWORD	TEMPS_PER_DAY DUP(?)
+	    00000000
+	   ]
+
+ 00000000			.code
+ 00000000			main PROC
+
+				; (insert executable instructions here)
+
+				; Deals with displaying header instructions and getting user entered file. 
+ 00000000  52				PUSH	EDX
+ 00000001  50				PUSH	EAX
+ 00000002  51				PUSH	ECX
+
+					mDisplayString header
+ 00000003  52		     1		PUSH	EDX
+ 00000004  BA 00000000 R     1		MOV		EDX, OFFSET header
+ 00000009  E8 00000000 E     1		CALL	WriteString
+ 0000000E  5A		     1		POP		EDX
+ 0000000F  E8 00000000 E		CALL	Crlf
+					mDisplayString instruct
+ 00000014  52		     1		PUSH	EDX
+ 00000015  BA 0000002D R     1		MOV		EDX, OFFSET instruct
+ 0000001A  E8 00000000 E     1		CALL	WriteString
+ 0000001F  5A		     1		POP		EDX
+					mGetString  prompt, error, userval, count, bytesread
+ 00000020  52		     1		PUSH	EDX
+ 00000021  50		     1		PUSH	EAX
+ 00000022  51		     1		PUSH	ECX
+ 00000023  53		     1		PUSH	EBX
+ 00000024		     1	_start:
+ 00000024  BB 00000021	     1		MOV		EBX, count
+ 00000029  E8 00000000 E     1		CALL	Crlf
+ 0000002E  52		     2		PUSH	EDX
+ 0000002F  BA 000000CA R     2		MOV		EDX, OFFSET prompt
+ 00000034  E8 00000000 E     2		CALL	WriteString
+ 00000039  5A		     2		POP		EDX
+ 0000003A  BA 000001BD R     1		MOV		EDX, OFFSET userval
+ 0000003F  4B		     1		DEC		EBX
+ 00000040  8B CB	     1		MOV		ECX, EBX
+ 00000042  43		     1		INC		EBX
+ 00000043  E8 00000000 E     1		CALL	ReadString
+ 00000048  A3 000001DE R     1		MOV		bytesread, EAX
+ 0000004D  83 EB 03	     1		SUB		EBX, 3
+ 00000050  39 1D 000001DE R  1		CMP		bytesread, EBX					; checks if user val is less then or equal to 30 characters
+ 00000056  7F 02	     1		JG		_error
+ 00000058  EB 18	     1		JMP		_end
+ 0000005A		     1	_error:
+ 0000005A  52		     2		PUSH	EDX
+ 0000005B  BA 000000EE R     2		MOV		EDX, OFFSET error
+ 00000060  E8 00000000 E     2		CALL	WriteString
+ 00000065  5A		     2		POP		EDX
+ 00000066  E8 00000000 E     1		CALL	Crlf
+ 0000006B  6A 00	   *	    push   +000000000h
+ 0000006D  E8 00000000 E   *	    call   ExitProcess
+ 00000072		     1	_end:
+ 00000072  58		     1		POP		EAX
+ 00000073  5B		     1		POP		EBX
+ 00000074  59		     1		POP		ECX
+ 00000075  5A		     1		POP		EDX
+
+ 00000076  BA 000001BD R		MOV		EDX, OFFSET userval
+				; Pre conditions EDX contains name of file. 
+ 0000007B  E8 00000000 E		CALL	OpenInputFile
+				; Post conditions EAX contains file handle or INVALID_HANDLE_VALUE
+
+ 00000080  83 F8 FF			CMP		EAX, INVALID_HANDLE_VALUE		; Checks EAX for INVALID_HANDLE_VALUE indicating a file could not be opened 
+ 00000083  74 02			JE		_file_error
+ 00000085  EB 13			JMP		_continue
+
+ 00000087			_file_error:
+					mDisplayString	error2					; If file is not found prints error
+ 00000087  52		     1		PUSH	EDX
+ 00000088  BA 0000010B R     1		MOV		EDX, OFFSET error2
+ 0000008D  E8 00000000 E     1		CALL	WriteString
+ 00000092  5A		     1		POP		EDX
+					Invoke ExitProcess,0					; exit to operating system
+ 00000093  6A 00	   *	    push   +000000000h
+ 00000095  E8 00000000 E   *	    call   ExitProcess
+
+ 0000009A			_continue:
+				; Deals with Reading Data from the file and moving that to the file buffer before closing the file. 
+ 0000009A  BA 00000145 R		MOV		EDX, OFFSET filebuffer
+ 0000009F  B9 00000078			MOV		ECX, BUFFERSIZE
+ 000000A4  E8 00000000 E		CALL	ReadFromFile
+
+				; Pre conditions EAX contains file handle
+ 000000A9  E8 00000000 E		CALL	CloseFile
+
+				; Calls the two main functions and pushes values/arrays/buffers
+ 000000AE  68 00000145 R		PUSH	OFFSET fileBuffer
+ 000000B3  6A 18			PUSH	OFFSET TEMPS_PER_DAY
+ 000000B5  6A 2C			PUSH	OFFSET DELIMITER
+ 000000B7  68 000001E2 R		PUSH	OFFSET tempArray
+ 000000BC  E8 00000029			CALL	ParseTempsFromString
+
+ 000000C1  68 000001E2 R		PUSH	OFFSET tempArray
+ 000000C6  6A 2C			PUSH	OFFSET DELIMITER
+ 000000C8  6A 18			PUSH	OFFSET TEMPS_PER_DAY
+ 000000CA  E8 000000A3			CALL	WriteTempsReverse
+
+ 000000CF  E8 00000000 E		CALL	Crlf
+					mDisplayString farwell					; Goodbye Message Printed
+ 000000D4  52		     1		PUSH	EDX
+ 000000D5  BA 0000011A R     1		MOV		EDX, OFFSET farwell
+ 000000DA  E8 00000000 E     1		CALL	WriteString
+ 000000DF  5A		     1		POP		EDX
+
+ 000000E0  52				PUSH	EDX
+ 000000E1  50				PUSH	EAX
+ 000000E2  51				PUSH	ECX
+					Invoke ExitProcess,0					; exit to operating system
+ 000000E3  6A 00	   *	    push   +000000000h
+ 000000E5  E8 00000000 E   *	    call   ExitProcess
+ 000000EA			main ENDP
+
+				; (insert additional procedures here)
+
+				; Procedure to parse temperatures in file convert it to numeric value and save.
+				; preconditions: fileBuffer defined and has contents, TEMPS_PER_DAY, DELIMITER, and tempArray defined.
+				; postconditions: None
+				; registers changed: None
+				; recieves: [EBP + 8] = tempArray, [EBP + 12] = DELIMITER, [EBP + 16] = TEMPS_PER_DAY, [EBP + 20] = fileBuffer
+				; returns: tempArray
+ 000000EA			ParseTempsFromString PROC
+ 000000EA  55				PUSH	EBP
+ 000000EB  8B EC			MOV		EBP, ESP
+ 000000ED  50				PUSH	EAX
+ 000000EE  53				PUSH	EBX
+ 000000EF  51				PUSH	ECX
+ 000000F0  52				PUSH	EDX
+ 000000F1  57				PUSH	EDI
+ 000000F2  56				PUSH	ESI
+
+ 000000F3  8B 7D 08			MOV		EDI, [EBP + 8]
+ 000000F6  8A 55 0C			MOV		DL, [EBP + 12]
+ 000000F9  8A 4D 10			MOV		CL, [EBP + 16]
+ 000000FC  8B 75 14			MOV		ESI, [EBP + 20]
+
+ 000000FF			_char:
+ 000000FF  AC				LODSB
+ 00000100  80 F9 00			CMP		CL, 0
+ 00000103  74 63			JE		_finish
+ 00000105  3A C2			CMP		AL, DL							; Skips the character if it is the deliminator
+ 00000107  74 F6			JE		_char
+ 00000109  3C 2D			CMP		AL, '-'							; Checks if it is a negative number
+ 0000010B  74 06			JE		_negative
+ 0000010D  2C 30			SUB		AL, '0'							; Converts to a numeric value
+ 0000010F  8A D8			MOV		BL, AL
+ 00000111  EB 07			JMP		_positive
+
+ 00000113			_negative:
+ 00000113  AC				LODSB
+ 00000114  2C 30			SUB		AL, '0'
+ 00000116  8A D8			MOV		BL, AL
+ 00000118  EB 1B			JMP		_negative2						; _negative2 is to ensure it jumps properly to _storenegnumber to properly negate the number.
+					
+					
+ 0000011A			_positive:
+ 0000011A  AC				LODSB
+ 0000011B  3A C2			CMP		AL, DL							; if it hits the deliminator jumps to store the value
+ 0000011D  74 31			JE		_storeposnumber
+
+ 0000011F  2C 30			SUB		AL, '0'
+ 00000121  52				PUSH	EDX
+ 00000122  8A D0			MOV		DL, AL
+ 00000124  8A C3			MOV		AL, BL
+ 00000126  B3 0A			MOV		BL, 10							; To deal with numbers such as 327, multiplying the first nnumber by 10 to get 30 and adding 2 and repating to get 327 in the end.
+ 00000128  F6 E3			MUL		BL
+ 0000012A  8A D8			MOV		BL, AL
+ 0000012C  8A C2			MOV		AL, DL
+ 0000012E  5A				POP		EDX	
+ 0000012F  02 C3			ADD		AL, BL
+ 00000131  8A D8			MOV		BL, AL
+ 00000133  EB E5			JMP		_positive
+
+ 00000135			_negative2:
+ 00000135  AC				LODSB
+ 00000136  3A C2			CMP		AL, DL
+ 00000138  74 1F			JE		_storenegnumber
+
+ 0000013A  2C 30			SUB		AL, '0'
+ 0000013C  52				PUSH	EDX
+ 0000013D  8A D0			MOV		DL, AL
+ 0000013F  8A C3			MOV		AL, BL
+ 00000141  B3 0A			MOV		BL, 10
+ 00000143  F6 E3			MUL		BL
+ 00000145  8A D8			MOV		BL, AL
+ 00000147  8A C2			MOV		AL, DL
+ 00000149  5A				POP		EDX	
+
+ 0000014A  02 C3			ADD		AL, BL
+ 0000014C  8A D8			MOV		BL, AL
+ 0000014E  EB E5			JMP		_negative2
+
+ 00000150			_storeposnumber:
+ 00000150  88 1F			MOV		[EDI], BL
+ 00000152  83 C7 04			ADD		EDI, 4
+ 00000155  FE C9			DEC		CL
+ 00000157  EB A6			JMP		_char
+
+ 00000159			_storenegnumber:
+ 00000159  88 1F			MOV		[EDI], BL
+ 0000015B  8B 1F			MOV		EBX, [EDI]
+ 0000015D  F7 DB			NEG		EBX
+ 0000015F  89 1F			MOV		[EDI], EBX						; To properly negate moves it into EBX negates it and then moves it back.
+ 00000161  83 C7 04			ADD		EDI, 4
+ 00000164  FE C9			DEC		CL
+ 00000166  EB 97			JMP		_char
+
+ 00000168			_finish:
+ 00000168  58				POP		EAX
+ 00000169  5B				POP		EBX
+ 0000016A  59				POP		ECX
+ 0000016B  5A				POP		EDX
+ 0000016C  5F				POP		EDI
+ 0000016D  5E				POP		ESI
+ 0000016E  5D				POP		EBP
+ 0000016F  C2 0010		ret 16
+ 00000172			ParseTempsFromString ENDP
+
+				; Procedure to display integers in reverse order of the original file.
+				; preconditions: TEMPS_PER_DAY, DELIMITER, tempArray is defined
+				; postconditions: None
+				; registers changed: None
+				; recieves: [EBP + 8] = TEMPS_PER_DAY, [EBP + 12] = DELIMITER,  [EBP + 16] = tempArray
+				; returns: Printed reversed tempArray
+ 00000172			WriteTempsReverse PROC
+ 00000172  55				PUSH	EBP
+ 00000173  8B EC			MOV		EBP, ESP
+ 00000175  52				PUSH	EDX
+ 00000176  57				PUSH	EDI
+ 00000177  51				PUSH	ECX
+ 00000178  53				PUSH	EBX
+ 00000179  50				PUSH	EAX
+
+ 0000017A  8B 4D 08			MOV		ECX, [EBP + 8]
+ 0000017D  8B 7D 10			MOV		EDI, [EBP + 16]
+					
+ 00000180  8B C1			MOV		EAX, ECX
+ 00000182  BB 00000004			MOV		EBX, 4
+ 00000187  F7 E3			MUL		EBX								; Multiplies it temps per day by 4 subtracted by 4 to get to the end of the list to start rather than the start.
+
+ 00000189  03 F8			ADD		EDI, EAX
+ 0000018B  83 EF 04			SUB		EDI, 4
+
+ 0000018E			_loop:
+ 0000018E  50				PUSH	EAX
+ 0000018F  8B 07			MOV		EAX, [EDI]
+ 00000191  E8 00000000 E		CALL	WriteInt
+					mDisplayChar [EBP + 12]					; Prints the deliminator using macro.
+ 00000196  50		     1		PUSH	EAX
+ 00000197  8A 45 0C	     1		MOV		AL, [EBP + 12]
+ 0000019A  E8 00000000 E     1		CALL	WriteChar
+ 0000019F  58		     1		POP		EAX
+ 000001A0  83 EF 04			SUB		EDI, 4
+ 000001A3  58				POP		EAX
+ 000001A4  E2 E8			LOOP	_loop
+
+ 000001A6  58				POP		EAX
+ 000001A7  5A				POP		EDX
+ 000001A8  5F				POP		EDI
+ 000001A9  59				POP		ECX
+ 000001AA  5B				POP		EBX
+ 000001AB  5D				POP		EBP
+ 000001AC  C2 000C		ret 12
+ 000001AF			WriteTempsReverse ENDP
+
+				END main
+Microsoft (R) Macro Assembler Version 14.42.34436.0	    03/12/25 02:26:20
+$Project Six     (Proj6_Strandga.asm			     Symbols 2 - 1
+
+
+
+
+Macros:
+
+                N a m e                 Type
+
+mDisplayChar . . . . . . . . . .	Proc
+mDisplayString . . . . . . . . .	Proc
+mGetString . . . . . . . . . . .	Proc
+
+
+Structures and Unions:
+
+                N a m e                  Size
+                                         Offset      Type
+
+CONSOLE_CURSOR_INFO  . . . . . .	 00000008
+  dwSize . . . . . . . . . . . .	 00000000	 DWord
+  bVisible . . . . . . . . . . .	 00000004	 DWord
+CONSOLE_SCREEN_BUFFER_INFO . . .	 00000016
+  dwSize . . . . . . . . . . . .	 00000000	 DWord
+  dwCursorPosition . . . . . . .	 00000004	 DWord
+  wAttributes  . . . . . . . . .	 00000008	 Word
+  srWindow . . . . . . . . . . .	 0000000A	 QWord
+  dwMaximumWindowSize  . . . . .	 00000012	 DWord
+COORD  . . . . . . . . . . . . .	 00000004
+  X  . . . . . . . . . . . . . .	 00000000	 Word
+  Y  . . . . . . . . . . . . . .	 00000002	 Word
+FILETIME . . . . . . . . . . . .	 00000008
+  loDateTime . . . . . . . . . .	 00000000	 DWord
+  hiDateTime . . . . . . . . . .	 00000004	 DWord
+FOCUS_EVENT_RECORD . . . . . . .	 00000004
+  bSetFocus  . . . . . . . . . .	 00000000	 DWord
+FPU_ENVIRON  . . . . . . . . . .	 0000001C
+  controlWord  . . . . . . . . .	 00000000	 Word
+  statusWord . . . . . . . . . .	 00000004	 Word
+  tagWord  . . . . . . . . . . .	 00000008	 Word
+  instrPointerOffset . . . . . .	 0000000C	 DWord
+  instrPointerSelector . . . . .	 00000010	 DWord
+  operandPointerOffset . . . . .	 00000014	 DWord
+  operandPointerSelector . . . .	 00000018	 Word
+INPUT_RECORD . . . . . . . . . .	 00000014
+  EventType  . . . . . . . . . .	 00000000	 Word
+  Event  . . . . . . . . . . . .	 00000004	 XmmWord
+  bKeyDown . . . . . . . . . . .	 00000000	 DWord
+  wRepeatCount . . . . . . . . .	 00000004	 Word
+  wVirtualKeyCode  . . . . . . .	 00000006	 Word
+  wVirtualScanCode . . . . . . .	 00000008	 Word
+  uChar  . . . . . . . . . . . .	 0000000A	 Word
+  UnicodeChar  . . . . . . . . .	 00000000	 Word
+  AsciiChar  . . . . . . . . . .	 00000000	 Byte
+  dwControlKeyState  . . . . . .	 0000000C	 DWord
+  dwMousePosition  . . . . . . .	 00000000	 DWord
+  dwButtonState  . . . . . . . .	 00000004	 DWord
+  dwMouseControlKeyState . . . .	 00000008	 DWord
+  dwEventFlags . . . . . . . . .	 0000000C	 DWord
+  dwSize . . . . . . . . . . . .	 00000000	 DWord
+  dwCommandId  . . . . . . . . .	 00000000	 DWord
+  bSetFocus  . . . . . . . . . .	 00000000	 DWord
+KEY_EVENT_RECORD . . . . . . . .	 00000010
+  bKeyDown . . . . . . . . . . .	 00000000	 DWord
+  wRepeatCount . . . . . . . . .	 00000004	 Word
+  wVirtualKeyCode  . . . . . . .	 00000006	 Word
+  wVirtualScanCode . . . . . . .	 00000008	 Word
+  uChar  . . . . . . . . . . . .	 0000000A	 Word
+  UnicodeChar  . . . . . . . . .	 00000000	 Word
+  AsciiChar  . . . . . . . . . .	 00000000	 Byte
+  dwControlKeyState  . . . . . .	 0000000C	 DWord
+MENU_EVENT_RECORD  . . . . . . .	 00000004
+  dwCommandId  . . . . . . . . .	 00000000	 DWord
+MOUSE_EVENT_RECORD . . . . . . .	 00000010
+  dwMousePosition  . . . . . . .	 00000000	 DWord
+  dwButtonState  . . . . . . . .	 00000004	 DWord
+  dwMouseControlKeyState . . . .	 00000008	 DWord
+  dwEventFlags . . . . . . . . .	 0000000C	 DWord
+SMALL_RECT . . . . . . . . . . .	 00000008
+  Left . . . . . . . . . . . . .	 00000000	 Word
+  Top  . . . . . . . . . . . . .	 00000002	 Word
+  Right  . . . . . . . . . . . .	 00000004	 Word
+  Bottom . . . . . . . . . . . .	 00000006	 Word
+SYSTEMTIME . . . . . . . . . . .	 00000010
+  wYear  . . . . . . . . . . . .	 00000000	 Word
+  wMonth . . . . . . . . . . . .	 00000002	 Word
+  wDayOfWeek . . . . . . . . . .	 00000004	 Word
+  wDay . . . . . . . . . . . . .	 00000006	 Word
+  wHour  . . . . . . . . . . . .	 00000008	 Word
+  wMinute  . . . . . . . . . . .	 0000000A	 Word
+  wSecond  . . . . . . . . . . .	 0000000C	 Word
+  wMilliseconds  . . . . . . . .	 0000000E	 Word
+WINDOW_BUFFER_SIZE_RECORD  . . .	 00000004
+  dwSize . . . . . . . . . . . .	 00000000	 DWord
+
+
+Segments and Groups:
+
+                N a m e                 Size     Length   Align   Combine Class
+
+FLAT . . . . . . . . . . . . . .	GROUP
+STACK  . . . . . . . . . . . . .	32 Bit	 00001000 Para	  Stack	  'STACK'	 
+_DATA  . . . . . . . . . . . . .	32 Bit	 00000242 Para	  Public  'DATA'	
+_TEXT  . . . . . . . . . . . . .	32 Bit	 000001AF Para	  Public  'CODE'	
+
+
+Procedures, parameters, and locals:
+
+                N a m e                 Type     Value    Attr
+
+CloseFile  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+CloseHandle  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+Clrscr . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+CreateFileA  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+CreateOutputFile . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+Crlf . . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+Delay  . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+DumpMem  . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+DumpRegs . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ExitProcess  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+FileTimeToDosDateTime  . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+FileTimeToSystemTime . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+FlushConsoleInputBuffer  . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+FormatMessageA . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetCommandLineA  . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetCommandTail . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetConsoleCP . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetConsoleCursorInfo . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetConsoleMode . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetConsoleScreenBufferInfo . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetDateTime  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetFileTime  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetKeyState  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetLastError . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetLocalTime . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetMaxXY . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetMseconds  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetNumberOfConsoleInputEvents  .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetProcessHeap . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetStdHandle . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetSystemTime  . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetTextColor . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetTickCount . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+Gotoxy . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+HeapAlloc  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+HeapCreate . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+HeapDestroy  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+HeapFree . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+HeapSize . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+IsDigit  . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+LocalFree  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+MessageBoxA  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+MsgBoxAsk  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+MsgBox . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+OpenInputFile  . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ParseDecimal32 . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ParseInteger32 . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ParseTempsFromString . . . . . .	P Near	 000000EA _TEXT	Length= 00000088 Public STDCALL
+  _char  . . . . . . . . . . . .	L Near	 000000FF _TEXT	
+  _negative  . . . . . . . . . .	L Near	 00000113 _TEXT	
+  _positive  . . . . . . . . . .	L Near	 0000011A _TEXT	
+  _negative2 . . . . . . . . . .	L Near	 00000135 _TEXT	
+  _storeposnumber  . . . . . . .	L Near	 00000150 _TEXT	
+  _storenegnumber  . . . . . . .	L Near	 00000159 _TEXT	
+  _finish  . . . . . . . . . . .	L Near	 00000168 _TEXT	
+PeekConsoleInputA  . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+Random32 . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+RandomRange  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+Randomize  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ReadChar . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ReadConsoleA . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ReadConsoleInputA  . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ReadDec  . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ReadFile . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ReadFloat  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ReadFromFile . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ReadHex  . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ReadInt  . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ReadKeyFlush . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ReadKey  . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ReadString . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+SetConsoleCursorInfo . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+SetConsoleCursorPosition . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+SetConsoleMode . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+SetConsoleScreenBufferSize . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+SetConsoleTextAttribute  . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+SetConsoleTitleA . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+SetConsoleWindowInfo . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+SetFilePointer . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+SetLocalTime . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+SetTextColor . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ShowFPUStack . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+Sleep  . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+StrLength  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+Str_compare  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+Str_copy . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+Str_length . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+Str_trim . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+Str_ucase  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+SystemTimeToFileTime . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WaitMsg  . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteBinB  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteBin . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteChar  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteConsoleA  . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteConsoleOutputAttribute  . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteConsoleOutputCharacterA . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteDec . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteFile  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteFloat . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteHexB  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteHex . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteInt . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteStackFrameName  . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteStackFrame  . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteString  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteTempsReverse  . . . . . . .	P Near	 00000172 _TEXT	Length= 0000003D Public STDCALL
+  _loop  . . . . . . . . . . . .	L Near	 0000018E _TEXT	
+WriteToFile  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteWindowsMsg  . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+main . . . . . . . . . . . . . .	P Near	 00000000 _TEXT	Length= 000000EA Public STDCALL
+  _start . . . . . . . . . . . .	L Near	 00000024 _TEXT	
+  _error . . . . . . . . . . . .	L Near	 0000005A _TEXT	
+  _end . . . . . . . . . . . . .	L Near	 00000072 _TEXT	
+  _file_error  . . . . . . . . .	L Near	 00000087 _TEXT	
+  _continue  . . . . . . . . . .	L Near	 0000009A _TEXT	
+printf . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External C
+scanf  . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External C
+wsprintfA  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External C
+
+
+Symbols:
+
+                N a m e                 Type     Value    Attr
+
+@CodeSize  . . . . . . . . . . .	Number	 00000000h   
+@DataSize  . . . . . . . . . . .	Number	 00000000h   
+@Interface . . . . . . . . . . .	Number	 00000003h   
+@Model . . . . . . . . . . . . .	Number	 00000007h   
+@code  . . . . . . . . . . . . .	Text   	 _TEXT
+@data  . . . . . . . . . . . . .	Text   	 FLAT
+@fardata?  . . . . . . . . . . .	Text   	 FLAT
+@fardata . . . . . . . . . . . .	Text   	 FLAT
+@stack . . . . . . . . . . . . .	Text   	 FLAT
+ALT_MASK . . . . . . . . . . . .	Number	 00000003h   
+BUFFERSIZE . . . . . . . . . . .	Number	 00000078h   
+CAPSLOCK_ON  . . . . . . . . . .	Number	 00000080h   
+CREATE_ALWAYS  . . . . . . . . .	Number	 00000002h   
+CREATE_NEW . . . . . . . . . . .	Number	 00000001h   
+CTRL_MASK  . . . . . . . . . . .	Number	 0000000Ch   
+CreateFile . . . . . . . . . . .	Text   	 CreateFileA
+DELIMITER  . . . . . . . . . . .	Number	 0000002Ch   
+DO_NOT_SHARE . . . . . . . . . .	Number	 00000000h   
+ENABLE_ECHO_INPUT  . . . . . . .	Number	 00000004h   
+ENABLE_LINE_INPUT  . . . . . . .	Number	 00000002h   
+ENABLE_MOUSE_INPUT . . . . . . .	Number	 00000010h   
+ENABLE_PROCESSED_INPUT . . . . .	Number	 00000001h   
+ENABLE_PROCESSED_OUTPUT  . . . .	Number	 00000001h   
+ENABLE_WINDOW_INPUT  . . . . . .	Number	 00000008h   
+ENABLE_WRAP_AT_EOL_OUTPUT  . . .	Number	 00000002h   
+ENHANCED_KEY . . . . . . . . . .	Number	 00000100h   
+FALSE  . . . . . . . . . . . . .	Number	 00000000h   
+FILE_APPEND_DATA . . . . . . . .	Number	 00000004h   
+FILE_ATTRIBUTE_ARCHIVE . . . . .	Number	 00000020h   
+FILE_ATTRIBUTE_COMPRESSED  . . .	Number	 00000800h   
+FILE_ATTRIBUTE_DEVICE  . . . . .	Number	 00000040h   
+FILE_ATTRIBUTE_DIRECTORY . . . .	Number	 00000010h   
+FILE_ATTRIBUTE_ENCRYPTED . . . .	Number	 00004000h   
+FILE_ATTRIBUTE_HIDDEN  . . . . .	Number	 00000002h   
+FILE_ATTRIBUTE_NORMAL  . . . . .	Number	 00000080h   
+FILE_ATTRIBUTE_NOT_CONTENT_INDEXED .	Number	 00002000h   
+FILE_ATTRIBUTE_OFFLINE . . . . .	Number	 00001000h   
+FILE_ATTRIBUTE_READONLY  . . . .	Number	 00000001h   
+FILE_ATTRIBUTE_REPARSE_POINT . .	Number	 00000400h   
+FILE_ATTRIBUTE_SPARSE_FILE . . .	Number	 00000200h   
+FILE_ATTRIBUTE_SYSTEM  . . . . .	Number	 00000004h   
+FILE_ATTRIBUTE_TEMPORARY . . . .	Number	 00000100h   
+FILE_BEGIN . . . . . . . . . . .	Number	 00000000h   
+FILE_CURRENT . . . . . . . . . .	Number	 00000001h   
+FILE_DELETE_CHILD  . . . . . . .	Number	 00000040h   
+FILE_END . . . . . . . . . . . .	Number	 00000002h   
+FILE_READ_DATA . . . . . . . . .	Number	 00000001h   
+FILE_SHARE_DELETE  . . . . . . .	Number	 00000004h   
+FILE_SHARE_READ  . . . . . . . .	Number	 00000001h   
+FILE_SHARE_WRITE . . . . . . . .	Number	 00000002h   
+FILE_WRITE_DATA  . . . . . . . .	Number	 00000002h   
+FOCUS_EVENT  . . . . . . . . . .	Number	 00000010h   
+FORMAT_MESSAGE_ALLOCATE_BUFFER .	Number	 00000100h   
+FORMAT_MESSAGE_FROM_SYSTEM . . .	Number	 00001000h   
+FormatMessage  . . . . . . . . .	Text   	 FormatMessageA
+GENERIC_ALL  . . . . . . . . . .	Number	 10000000h   
+GENERIC_EXECUTE  . . . . . . . .	Number	 20000000h   
+GENERIC_READ . . . . . . . . . .	Number	 -80000000h   
+GENERIC_WRITE  . . . . . . . . .	Number	 40000000h   
+GetCommandLine . . . . . . . . .	Text   	 GetCommandLineA
+HANDLE . . . . . . . . . . . . .	Text   	 DWORD
+HEAP_GENERATE_EXCEPTIONS . . . .	Number	 00000004h   
+HEAP_GROWABLE  . . . . . . . . .	Number	 00000002h   
+HEAP_NO_SERIALIZE  . . . . . . .	Number	 00000001h   
+HEAP_REALLOC_IN_PLACE_ONLY . . .	Number	 00000010h   
+HEAP_ZERO_MEMORY . . . . . . . .	Number	 00000008h   
+IDABORT  . . . . . . . . . . . .	Number	 00000003h   
+IDCANCEL . . . . . . . . . . . .	Number	 00000002h   
+IDCLOSE  . . . . . . . . . . . .	Number	 00000008h   
+IDCONTINUE . . . . . . . . . . .	Number	 0000000Bh   
+IDHELP . . . . . . . . . . . . .	Number	 00000009h   
+IDIGNORE . . . . . . . . . . . .	Number	 00000005h   
+IDNO . . . . . . . . . . . . . .	Number	 00000007h   
+IDOK . . . . . . . . . . . . . .	Number	 00000001h   
+IDRETRY  . . . . . . . . . . . .	Number	 00000004h   
+IDTIMEOUT  . . . . . . . . . . .	Number	 00007D00h   
+IDTRYAGAIN . . . . . . . . . . .	Number	 0000000Ah   
+IDYES  . . . . . . . . . . . . .	Number	 00000006h   
+INVALID_HANDLE_VALUE . . . . . .	Number	 -00000001h   
+KBDOWN_FLAG  . . . . . . . . . .	Number	 00000001h   
+KEY_EVENT  . . . . . . . . . . .	Number	 00000001h   
+KEY_MASKS  . . . . . . . . . . .	Number	 0000001Fh   
+LEFT_ALT_PRESSED . . . . . . . .	Number	 00000002h   
+LEFT_CTRL_PRESSED  . . . . . . .	Number	 00000008h   
+MB_ABORTRETRYIGNORE  . . . . . .	Number	 00000002h   
+MB_APPLMODAL . . . . . . . . . .	Number	 00000000h   
+MB_CANCELTRYCONTINUE . . . . . .	Number	 00000006h   
+MB_DEFBUTTON1  . . . . . . . . .	Number	 00000000h   
+MB_DEFBUTTON2  . . . . . . . . .	Number	 00000100h   
+MB_DEFBUTTON3  . . . . . . . . .	Number	 00000200h   
+MB_DEFBUTTON4  . . . . . . . . .	Number	 00000300h   
+MB_HELP  . . . . . . . . . . . .	Number	 00004000h   
+MB_ICONASTERISK  . . . . . . . .	Number	 00000040h   
+MB_ICONERROR . . . . . . . . . .	Number	 00000010h   
+MB_ICONEXCLAMATION . . . . . . .	Number	 00000030h   
+MB_ICONHAND  . . . . . . . . . .	Number	 00000010h   
+MB_ICONINFORMATION . . . . . . .	Number	 00000040h   
+MB_ICONQUESTION  . . . . . . . .	Number	 00000020h   
+MB_ICONSTOP  . . . . . . . . . .	Number	 00000010h   
+MB_ICONWARNING . . . . . . . . .	Number	 00000030h   
+MB_OKCANCEL  . . . . . . . . . .	Number	 00000001h   
+MB_OK  . . . . . . . . . . . . .	Number	 00000000h   
+MB_RETRYCANCEL . . . . . . . . .	Number	 00000005h   
+MB_SYSTEMMODAL . . . . . . . . .	Number	 00001000h   
+MB_TASKMODAL . . . . . . . . . .	Number	 00002000h   
+MB_USERICON  . . . . . . . . . .	Number	 00000080h   
+MB_YESNOCANCEL . . . . . . . . .	Number	 00000003h   
+MB_YESNO . . . . . . . . . . . .	Number	 00000004h   
+MENU_EVENT . . . . . . . . . . .	Number	 00000008h   
+MOUSE_EVENT  . . . . . . . . . .	Number	 00000002h   
+MessageBox . . . . . . . . . . .	Text   	 MessageBoxA
+NULL . . . . . . . . . . . . . .	Number	 00000000h   
+NUMLOCK_ON . . . . . . . . . . .	Number	 00000020h   
+OPEN_ALWAYS  . . . . . . . . . .	Number	 00000004h   
+OPEN_EXISTING  . . . . . . . . .	Number	 00000003h   
+PeekConsoleInput . . . . . . . .	Text   	 PeekConsoleInputA
+RIGHT_ALT_PRESSED  . . . . . . .	Number	 00000001h   
+RIGHT_CTRL_PRESSED . . . . . . .	Number	 00000004h   
+ReadConsoleInput . . . . . . . .	Text   	 ReadConsoleInputA
+ReadConsole  . . . . . . . . . .	Text   	 ReadConsoleA
+SCROLLLOCK_ON  . . . . . . . . .	Number	 00000040h   
+SHIFT_MASK . . . . . . . . . . .	Number	 00000010h   
+SHIFT_PRESSED  . . . . . . . . .	Number	 00000010h   
+STD_ERROR_HANDLE . . . . . . . .	Number	 -0000000Ch   
+STD_INPUT_HANDLE . . . . . . . .	Number	 -0000000Ah   
+STD_OUTPUT_HANDLE  . . . . . . .	Number	 -0000000Bh   
+SetConsoleTitle  . . . . . . . .	Text   	 SetConsoleTitleA
+TAB  . . . . . . . . . . . . . .	Number	 00000009h   
+TEMPS_PER_DAY  . . . . . . . . .	Number	 00000018h   
+TRUE . . . . . . . . . . . . . .	Number	 00000001h   
+TRUNCATE_EXISTING  . . . . . . .	Number	 00000005h   
+VK_11  . . . . . . . . . . . . .	Number	 000000BDh   
+VK_12  . . . . . . . . . . . . .	Number	 000000BBh   
+VK_ADD . . . . . . . . . . . . .	Number	 0000006Bh   
+VK_BACK  . . . . . . . . . . . .	Number	 00000008h   
+VK_CANCEL  . . . . . . . . . . .	Number	 00000003h   
+VK_CAPITAL . . . . . . . . . . .	Number	 00000014h   
+VK_CLEAR . . . . . . . . . . . .	Number	 0000000Ch   
+VK_CONTROL . . . . . . . . . . .	Number	 00000011h   
+VK_DECIMAL . . . . . . . . . . .	Number	 0000006Eh   
+VK_DELETE  . . . . . . . . . . .	Number	 0000002Eh   
+VK_DIVIDE  . . . . . . . . . . .	Number	 0000006Fh   
+VK_DOWN  . . . . . . . . . . . .	Number	 00000028h   
+VK_END . . . . . . . . . . . . .	Number	 00000023h   
+VK_ESCAPE  . . . . . . . . . . .	Number	 0000001Bh   
+VK_EXECUTE . . . . . . . . . . .	Number	 0000002Bh   
+VK_F10 . . . . . . . . . . . . .	Number	 00000079h   
+VK_F11 . . . . . . . . . . . . .	Number	 0000007Ah   
+VK_F12 . . . . . . . . . . . . .	Number	 0000007Bh   
+VK_F13 . . . . . . . . . . . . .	Number	 0000007Ch   
+VK_F14 . . . . . . . . . . . . .	Number	 0000007Dh   
+VK_F15 . . . . . . . . . . . . .	Number	 0000007Eh   
+VK_F16 . . . . . . . . . . . . .	Number	 0000007Fh   
+VK_F17 . . . . . . . . . . . . .	Number	 00000080h   
+VK_F18 . . . . . . . . . . . . .	Number	 00000081h   
+VK_F19 . . . . . . . . . . . . .	Number	 00000082h   
+VK_F1  . . . . . . . . . . . . .	Number	 00000070h   
+VK_F20 . . . . . . . . . . . . .	Number	 00000083h   
+VK_F21 . . . . . . . . . . . . .	Number	 00000084h   
+VK_F22 . . . . . . . . . . . . .	Number	 00000085h   
+VK_F23 . . . . . . . . . . . . .	Number	 00000086h   
+VK_F24 . . . . . . . . . . . . .	Number	 00000087h   
+VK_F2  . . . . . . . . . . . . .	Number	 00000071h   
+VK_F3  . . . . . . . . . . . . .	Number	 00000072h   
+VK_F4  . . . . . . . . . . . . .	Number	 00000073h   
+VK_F5  . . . . . . . . . . . . .	Number	 00000074h   
+VK_F6  . . . . . . . . . . . . .	Number	 00000075h   
+VK_F7  . . . . . . . . . . . . .	Number	 00000076h   
+VK_F8  . . . . . . . . . . . . .	Number	 00000077h   
+VK_F9  . . . . . . . . . . . . .	Number	 00000078h   
+VK_HELP  . . . . . . . . . . . .	Number	 0000002Fh   
+VK_HOME  . . . . . . . . . . . .	Number	 00000024h   
+VK_INSERT  . . . . . . . . . . .	Number	 0000002Dh   
+VK_LBUTTON . . . . . . . . . . .	Number	 00000001h   
+VK_LCONTROL  . . . . . . . . . .	Number	 000000A2h   
+VK_LEFT  . . . . . . . . . . . .	Number	 00000025h   
+VK_LMENU . . . . . . . . . . . .	Number	 000000A4h   
+VK_LSHIFT  . . . . . . . . . . .	Number	 000000A0h   
+VK_MENU  . . . . . . . . . . . .	Number	 00000012h   
+VK_MULTIPLY  . . . . . . . . . .	Number	 0000006Ah   
+VK_NEXT  . . . . . . . . . . . .	Number	 00000022h   
+VK_NUMLOCK . . . . . . . . . . .	Number	 00000090h   
+VK_NUMPAD0 . . . . . . . . . . .	Number	 00000060h   
+VK_NUMPAD1 . . . . . . . . . . .	Number	 00000061h   
+VK_NUMPAD2 . . . . . . . . . . .	Number	 00000062h   
+VK_NUMPAD3 . . . . . . . . . . .	Number	 00000063h   
+VK_NUMPAD4 . . . . . . . . . . .	Number	 00000064h   
+VK_NUMPAD5 . . . . . . . . . . .	Number	 00000065h   
+VK_NUMPAD6 . . . . . . . . . . .	Number	 00000066h   
+VK_NUMPAD7 . . . . . . . . . . .	Number	 00000067h   
+VK_NUMPAD8 . . . . . . . . . . .	Number	 00000068h   
+VK_NUMPAD9 . . . . . . . . . . .	Number	 00000069h   
+VK_PAUSE . . . . . . . . . . . .	Number	 00000013h   
+VK_PRINT . . . . . . . . . . . .	Number	 0000002Ah   
+VK_PRIOR . . . . . . . . . . . .	Number	 00000021h   
+VK_RBUTTON . . . . . . . . . . .	Number	 00000002h   
+VK_RCONTROL  . . . . . . . . . .	Number	 000000A3h   
+VK_RETURN  . . . . . . . . . . .	Number	 0000000Dh   
+VK_RIGHT . . . . . . . . . . . .	Number	 00000027h   
+VK_RMENU . . . . . . . . . . . .	Number	 000000A5h   
+VK_RSHIFT  . . . . . . . . . . .	Number	 000000A1h   
+VK_SCROLL  . . . . . . . . . . .	Number	 00000091h   
+VK_SEPARATER . . . . . . . . . .	Number	 0000006Ch   
+VK_SHIFT . . . . . . . . . . . .	Number	 00000010h   
+VK_SNAPSHOT  . . . . . . . . . .	Number	 0000002Ch   
+VK_SPACE . . . . . . . . . . . .	Number	 00000020h   
+VK_SUBTRACT  . . . . . . . . . .	Number	 0000006Dh   
+VK_TAB . . . . . . . . . . . . .	Number	 00000009h   
+VK_UP  . . . . . . . . . . . . .	Number	 00000026h   
+WINDOW_BUFFER_SIZE_EVENT . . . .	Number	 00000004h   
+WriteConsoleOutputCharacter  . .	Text   	 WriteConsoleOutputCharacterA
+WriteConsole . . . . . . . . . .	Text   	 WriteConsoleA
+black  . . . . . . . . . . . . .	Number	 00000000h   
+blue . . . . . . . . . . . . . .	Number	 00000001h   
+brown  . . . . . . . . . . . . .	Number	 00000006h   
+bytesread  . . . . . . . . . . .	DWord	 000001DE _DATA	
+count  . . . . . . . . . . . . .	Number	 00000021h   
+cyan . . . . . . . . . . . . . .	Number	 00000003h   
+error2 . . . . . . . . . . . . .	Byte	 0000010B _DATA	
+error  . . . . . . . . . . . . .	Byte	 000000EE _DATA	
+exit . . . . . . . . . . . . . .	Text   	 INVOKE ExitProcess,0
+farwell  . . . . . . . . . . . .	Byte	 0000011A _DATA	
+filebuffer . . . . . . . . . . .	Byte	 00000145 _DATA	
+gray . . . . . . . . . . . . . .	Number	 00000008h   
+green  . . . . . . . . . . . . .	Number	 00000002h   
+header . . . . . . . . . . . . .	Byte	 00000000 _DATA	
+instruct . . . . . . . . . . . .	Byte	 0000002D _DATA	
+lightBlue  . . . . . . . . . . .	Number	 00000009h   
+lightCyan  . . . . . . . . . . .	Number	 0000000Bh   
+lightGray  . . . . . . . . . . .	Number	 00000007h   
+lightGreen . . . . . . . . . . .	Number	 0000000Ah   
+lightMagenta . . . . . . . . . .	Number	 0000000Dh   
+lightRed . . . . . . . . . . . .	Number	 0000000Ch   
+magenta  . . . . . . . . . . . .	Number	 00000005h   
+prompt . . . . . . . . . . . . .	Byte	 000000CA _DATA	
+red  . . . . . . . . . . . . . .	Number	 00000004h   
+tempArray  . . . . . . . . . . .	DWord	 000001E2 _DATA	
+userval  . . . . . . . . . . . .	Byte	 000001BD _DATA	
+white  . . . . . . . . . . . . .	Number	 0000000Fh   
+wsprintf . . . . . . . . . . . .	Text   	 wsprintfA
+yellow . . . . . . . . . . . . .	Number	 0000000Eh   
+
+	   0 Warnings
+	   0 Errors
